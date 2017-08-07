@@ -27,18 +27,27 @@ export class Renderer {
      */
     render(root: Root): string {
         const namespace = source`
-export namespace schema {
-    export type GraphqlField<Args, Result, Ctx> = Result | Promise<Result> |
-        ((args: Args, context: Ctx) => Result | Promise<Result>)
+export type GraphqlField<Source, Args, Result, Ctx> = 
+  Result | 
+  Promise<Result> |
+  (
+    ( source:Source, 
+      args:Args, 
+      context:Ctx, 
+      info:GraphQLResolveInfo
+    ) => Result | Promise<Result>
+  )
 
-    ${this.renderEnums(root.data.__schema.types)}
-    ${this.renderUnions(root.data.__schema.types)}
-    ${this.renderInterfaces(root.data.__schema.types)}
-    ${this.renderInputObjects(root.data.__schema.types)}
-    ${this.renderTypes(root.data.__schema.types)}
-    ${this.renderDefaultResolvers(root.data.__schema.types)}
-}`
+${this.renderEnums(root.data.__schema.types)}
+${this.renderUnions(root.data.__schema.types)}
+${this.renderInterfaces(root.data.__schema.types)}
+${this.renderInputObjects(root.data.__schema.types)}
+${this.renderTypes(root.data.__schema.types)}
+${this.renderDefaultResolvers(root.data.__schema.types)}
+`
+
         return `/* tslint:disable */
+import {GraphQLResolveInfo} from "graphql";
 
 ${namespace.replace(/^\s+$/mg, '')}`
     }
@@ -66,7 +75,7 @@ ${namespace.replace(/^\s+$/mg, '')}`
 ${this.renderComment(type.description)}
 export interface ${type.name}<Ctx> ${this.renderExtends(type)}{
     ${this.renderTypename(type.name, all)}${OMIT_NEXT_NEWLINE}
-${type.fields.map((field) => this.renderMemberWithComment(field)).join('\n')}
+${type.fields.map((field) => this.renderMemberWithComment(field, type.name)).join('\n')}
 }
 `
     }
@@ -104,27 +113,30 @@ ${type.fields.map((field) => this.renderMemberWithComment(field)).join('\n')}
     /**
      * Render a member (field or method) and its doc-comment
      * @param field
+     * @param parentTypeName
      * @returns
      */
-    renderMemberWithComment(field: Field): string {
+    renderMemberWithComment(field: Field, parentTypeName: string): string {
         return source`
 ${this.renderComment(field.description)}
-${this.renderMember(field)}
+${this.renderMember(field, parentTypeName)}
 `
     }
 
     /**
      * Render a single field or method without doc-comment
      * @param field
+     * @param parentTypeName
      * @returns {string}
      */
-    renderMember(field: Field) {
+    renderMember(field: Field, parentTypeName: string) {
         const optional = field.type.kind !== 'NON_NULL'
         const type = this.renderType(field.type, false)
         const resultType = optional ? `${type} | undefined` : type
         const argType = this.renderArgumentType(field.args || [])
         const name = optional ? field.name + '?' : field.name
-        return `${name}: GraphqlField<${argType}, ${resultType}, Ctx>`
+        const source = parentTypeName ? parentTypeName + '<Ctx>' : 'undefined'
+        return `${name}: GraphqlField<${source}, ${argType}, ${resultType}, Ctx>`
     }
 
     /**
@@ -199,13 +211,7 @@ ${this.renderMember(field)}
         return source`
 ${this.renderComment(type.description)}
 export type ${type.name} = ${type.enumValues.map((value) => `'${value.name}'`).join(' | ')}
-export const ${type.name}: {
-    ${type.enumValues.map((value) => this.renderEnumValueType(value)).join('\n')}
-} = {
-    ${type.enumValues.map((value) => this.renderEnumValue(value)).join('\n')}
-}
-
-`
+export const ${type.name}: { ${type.enumValues.map((value) => this.renderEnumValueType(value)).join(' ')} } = { ${type.enumValues.map((value) => this.renderEnumValue(value)).join(' ')}}`
     }
 
     /**
@@ -277,7 +283,7 @@ export type ${type.name}<Ctx> = ${unionValues}
         return source`
 ${this.renderComment(type.description)}
 export interface ${type.name}<Ctx> {
-    ${type.fields.map((field) => this.renderMemberWithComment(field)).join('\n')}
+    ${type.fields.map((field) => this.renderMemberWithComment(field, type.name)).join('\n')}
 }
 `
     }
@@ -348,7 +354,7 @@ ${this.renderInputMember(field)}
         return source`\n
 export const defaultResolvers = {
 ${resolvers}
-}`
+};`
     }
 
     /**
