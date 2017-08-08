@@ -1,6 +1,6 @@
 {
-  "name": "graphql-typewriter",
-  "version": "0.4.0",
+  "name": "@team-birowsky/graphql-typewriter",
+  "version": "0.5.0",
   "description": "Easy TypeScript interfaces for your GraphQL server",
   "repository": {
     "type": "git",
@@ -9,7 +9,7 @@
   "bin": {
     "graphql-typewriter": "bin/graphql-typewriter.js"
   },
-  "homepage": "https://github.com/nknapp/graphql-typewriter",
+  "homepage": "https://github.com/teambirowsky/graphql-typewriter.git",
   "preferGlobal": true,
   "author": {
     "name": "Nils Knappmeier",
@@ -24,7 +24,7 @@
     }
   ],
   "bugs": {
-    "url": "https://github.com/nknapp/graphql-typewriter/issues"
+    "url": "https://github.com/teambirowsky/graphql-typewriter.git/issues"
   },
   "main": "src/index.js",
   "license": "MIT",
