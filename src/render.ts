@@ -27,6 +27,7 @@ export class Renderer {
      */
     render(root: Root): string {
         const namespace = source`
+type ID = string;
 export type GraphqlField<Source, Args, Result, Ctx> = 
   Result | 
   Promise<Result> |
@@ -38,17 +39,17 @@ export type GraphqlField<Source, Args, Result, Ctx> =
     ) => Result | Promise<Result>
   )
 
+${this.renderTypes(root.data.__schema.types)}
+${this.renderArguments(root.data.__schema.types)}
+${this.renderInputObjects(root.data.__schema.types)}
 ${this.renderEnums(root.data.__schema.types)}
 ${this.renderUnions(root.data.__schema.types)}
 ${this.renderInterfaces(root.data.__schema.types)}
-${this.renderInputObjects(root.data.__schema.types)}
-${this.renderTypes(root.data.__schema.types)}
 ${this.renderDefaultResolvers(root.data.__schema.types)}
 `
 
         return `/* tslint:disable */
 import {GraphQLResolveInfo} from "graphql";
-
 ${namespace.replace(/^\s+$/mg, '')}`
     }
 
@@ -133,7 +134,7 @@ ${this.renderMember(field, parentTypeName)}
         const optional = field.type.kind !== 'NON_NULL'
         const type = this.renderType(field.type, false)
         const resultType = optional ? `${type} | undefined` : type
-        const argType = this.renderArgumentType(field.args || [])
+        const argType = field.args.length ? `${field.name}Args` : this.renderArgumentType(field.args || [])
         const name = optional ? field.name + '?' : field.name
         const source = parentTypeName ? parentTypeName + '<Ctx>' : 'undefined'
         return `${name}: GraphqlField<${source}, ${argType}, ${resultType}, Ctx>`
@@ -286,6 +287,32 @@ export interface ${type.name}<Ctx> {
     ${type.fields.map((field) => this.renderMemberWithComment(field, type.name)).join('\n')}
 }
 `
+    }
+
+    renderArguments(types) {
+        return types
+            .filter(type => !this.introspectionTypes[type.name])
+            .filter(type => type.name === 'Mutation' || type.name === 'Query' || type.name === 'Subscription')
+            .map(type => type.fields)
+            .reduce((memo, fields) => memo.concat(fields), [])
+            .map((type) => renderInputsInterfaces(type, types))
+            .join('')
+
+        function renderInputsInterfaces(type, all) {
+            return (
+`
+export interface ${type.name}Args { 
+${type.args.map(renderArg).join('\n')}
+}
+`
+            )
+        }
+
+        function renderArg(arg) {
+            const optional = arg.type.kind === 'NON_NULL' ? '' : '?'
+            const type = arg.type.ofType ? arg.type.ofType.name : arg.type.name
+            return `    ${arg.name}${optional}: ${type}`
+        }
     }
 
     /**
