@@ -131,11 +131,12 @@ ${this.renderMember(field, parentTypeName)}
      * @returns {string}
      */
     renderMember(field: Field, parentTypeName: string) {
+        const mutationOrQuery = parentTypeName === 'Mutation' || parentTypeName === 'Query'
         const optional = field.type.kind !== 'NON_NULL'
         const type = this.renderType(field.type, false)
         const resultType = optional ? `${type} | undefined` : type
         const argType = field.args.length ? `${field.name}Args` : this.renderArgumentType(field.args || [])
-        const name = optional ? field.name + '?' : field.name
+        const name = optional && !mutationOrQuery ? field.name + '?' : field.name
         const source = parentTypeName ? parentTypeName + '<Ctx>' : 'undefined'
         return `${name}: GraphqlField<${source}, ${argType}, ${resultType}, Ctx>`
     }
