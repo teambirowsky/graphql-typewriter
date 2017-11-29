@@ -40,6 +40,7 @@ export type GraphqlField<Source, Args, Result, Ctx> =
   )
 
 ${this.renderTypes(root.data.__schema.types)}
+${this.renderCustomScalars(root.data.__schema.types)}
 ${this.renderArguments(root.data.__schema.types)}
 ${this.renderInputObjects(root.data.__schema.types)}
 ${this.renderEnums(root.data.__schema.types)}
@@ -155,7 +156,7 @@ ${this.renderMember(field, parentTypeName)}
 
         switch (type.kind) {
             case 'SCALAR':
-                return maybeOptional(scalars[type.name])
+                return maybeOptional(scalars[type.name] || type.name)
             case 'ENUM':
             case 'INPUT_OBJECT':
                 return maybeOptional(type.name)
@@ -315,6 +316,23 @@ ${type.args.map(renderArg).join('\n')}
             return `    ${arg.name}${optional}: ${type}`
         }
     }
+
+
+
+    renderCustomScalars(types) {
+        const knownScalars = Object.keys(scalars);
+        return types
+            .filter(a => a.kind === 'SCALAR' && knownScalars.indexOf(a.name) === -1)
+            .reduce((memo, item) => {
+                const pattern = /TypeAlias:\s*([^\n]+)/g;
+                const typeAlias = pattern.exec(item.description)[1];
+                const scalar = `type ${item.name} = ${typeAlias};`;
+                return memo + scalar + '\n';
+            }, '');
+    }
+
+
+
 
     /**
      * Render a list of input object.
