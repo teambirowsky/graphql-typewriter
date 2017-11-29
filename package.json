@@ -1,6 +1,6 @@
 {
   "name": "@team-birowsky/graphql-typewriter",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Easy TypeScript interfaces for your GraphQL server",
   "repository": {
     "type": "git",
