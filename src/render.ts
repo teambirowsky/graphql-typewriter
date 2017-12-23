@@ -28,6 +28,7 @@ export class Renderer {
     render(root: Root): string {
         const namespace = source`
 type ID = string;
+type String = string;
 export type GraphqlField<Source, Args, Result, Ctx> = 
   Result | 
   Promise<Result> |
@@ -412,7 +413,7 @@ ${resolvers}
     renderResolver(type: TypeDef): string {
         return source`
     ${type.name}: {
-        __resolveType(obj) {
+        __resolveType(obj:any) {
             return obj.__typename
         }
     }`
