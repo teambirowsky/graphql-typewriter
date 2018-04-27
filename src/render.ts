@@ -29,6 +29,8 @@ export class Renderer {
         const namespace = source`
 type ID = string;
 type String = string;
+type Int = number;
+type Float = number;
 export type GraphqlField<Source, Args, Result, Ctx> = 
   Result | 
   Promise<Result> |
