@@ -27,9 +27,13 @@ export class Renderer {
      */
     render(root: Root): string {
         const namespace = source`
+// noinspection JSUnusedLocalSymbols
 type ID = string;
+// noinspection JSUnusedLocalSymbols
 type String = string;
+// noinspection JSUnusedLocalSymbols
 type Int = number;
+// noinspection JSUnusedLocalSymbols
 type Float = number;
 export type GraphqlField<Source, Args, Result, Ctx> = 
   Result | 
