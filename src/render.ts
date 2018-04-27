@@ -27,14 +27,6 @@ export class Renderer {
      */
     render(root: Root): string {
         const namespace = source`
-// noinspection JSUnusedLocalSymbols
-type ID = string;
-// noinspection JSUnusedLocalSymbols
-type String = string;
-// noinspection JSUnusedLocalSymbols
-type Int = number;
-// noinspection JSUnusedLocalSymbols
-type Float = number;
 export type GraphqlField<Source, Args, Result, Ctx> = 
   Result | 
   Promise<Result> |
@@ -299,6 +291,7 @@ export interface ${type.name}<Ctx> {
     }
 
     renderArguments(types) {
+        const renderType = this.renderType.bind(this);
         return types
             .filter(type => !this.introspectionTypes[type.name])
             .filter(type => type.name === 'Mutation' || type.name === 'Query' || type.name === 'Subscription')
@@ -318,9 +311,9 @@ ${type.args.map(renderArg).join('\n')}
         }
 
         function renderArg(arg) {
-            const optional = arg.type.kind === 'NON_NULL' ? '' : '?'
-            const type = arg.type.ofType ? arg.type.ofType.name : arg.type.name
-            return `    ${arg.name}${optional}: ${type}`
+            // const optional = arg.type.kind === 'NON_NULL' ? '' : '?'
+            // const type = arg.type.ofType ? arg.type.ofType.name : arg.type.name
+            return `    ${arg.name}: ${renderType(arg.type, arg.type.kind === 'NON_NULL')}`
         }
     }
 
