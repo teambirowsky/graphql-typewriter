@@ -11,7 +11,7 @@ export class Renderer {
     /**
      * Types that are not created as interface, because they are part of the introspection
      */
-    private introspectionTypes: {[key: string]: boolean} = setOf([
+    private introspectionTypes: { [key: string]: boolean } = setOf([
         '__Schema', '__Type', '__TypeKind', '__Field', '__InputValue', '__EnumValue',
         '__Directive', '__DirectiveLocation'
     ])
@@ -130,7 +130,7 @@ ${this.renderMember(field, parentTypeName)}
      * @param parentTypeName
      * @returns {string}
      */
-    renderMember(field: Field, parentTypeName: string) {
+    renderMember(field: Field, parentTypeName: string): string {
         const mutationOrQuery = parentTypeName === 'Mutation' || parentTypeName === 'Query'
         const optional = field.type.kind !== 'NON_NULL'
         const type = this.renderType(field.type, false)
@@ -149,6 +149,7 @@ ${this.renderMember(field, parentTypeName)}
         function maybeOptional(arg) {
             return optional ? `(${arg} | undefined)` : arg
         }
+
         function generic(arg) {
             return `${arg}<Ctx>`
         }
@@ -294,15 +295,24 @@ export interface ${type.name}<Ctx> {
         const renderType = this.renderType.bind(this);
         return types
             .filter(type => !this.introspectionTypes[type.name])
-            .filter(type => type.name === 'Mutation' || type.name === 'Query' || type.name === 'Subscription')
-            .map(type => type.fields)
-            .reduce((memo, fields) => memo.concat(fields), [])
-            .map((type) => renderInputsInterfaces(type, types))
-            .join('')
+            .map(type => {
+                if (type.name === 'Mutation' || type.name === 'Query' || type.name === 'Subscription') {
+                    return type.fields
+                        .map(type => renderInputsInterfaces(type))
+                        .join('');
+                } else if (type.kind === 'OBJECT') {
+                    return this.renderArguments(type.fields);
+                } else if (type.args && type.args.length) {
+                    return renderInputsInterfaces(type);
+                } else {
+                    return '';
+                }
+            })
+            .join('');
 
-        function renderInputsInterfaces(type, all) {
+        function renderInputsInterfaces(type) {
             return (
-`
+                `
 export interface ${type.name}Args { 
 ${type.args.map(renderArg).join('\n')}
 }
@@ -318,7 +328,6 @@ ${type.args.map(renderArg).join('\n')}
     }
 
 
-
     renderCustomScalars(types) {
         const knownScalars = Object.keys(scalars);
         return types
@@ -330,8 +339,6 @@ ${type.args.map(renderArg).join('\n')}
                 return memo + scalar + '\n';
             }, '');
     }
-
-
 
 
     /**
@@ -432,9 +439,9 @@ const scalars = {
  * @param array
  * @returns {{}}
  */
-function setOf(array: string[]): {[key: string]: boolean} {
+function setOf(array: string[]): { [key: string]: boolean } {
     return array.reduce(
-        (set, current): {[key: string]: boolean} => {
+        (set, current): { [key: string]: boolean } => {
             set[current] = true
             return set
         },
